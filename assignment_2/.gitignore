@@ -1,0 +1,6 @@
+node_modules/
+dist/
+
+# NEVER commit wallet keys
+devnet-wallet.json
+*.json.local
