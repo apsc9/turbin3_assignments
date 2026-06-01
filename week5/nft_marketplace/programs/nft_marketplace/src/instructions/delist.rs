@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use mpl_core::{ID as MPL_CORE_ID, collection, instructions::TransferV1CpiBuilder};
+use mpl_core::{ID as MPL_CORE_ID, instructions::TransferV1CpiBuilder};
 
 use crate::*;
 
@@ -19,7 +19,7 @@ pub struct Delist<'info> {
     #[account(
         mut,
         close = maker,
-        seeds = [b"listing", listing.asset.key().as_ref()],
+        seeds = [b"listing", asset.key().as_ref()],
         bump = listing.bump,
         has_one = maker,
     )]

@@ -4,6 +4,9 @@ pub mod buy;
 pub mod delist;
 pub mod withdraw_fee;
 pub mod buy_with_token;
+pub mod make_offer;
+pub mod accept_offer;
+pub mod cancel_offer;
 
 pub use initialize::*;
 pub use list::*;
@@ -11,3 +14,6 @@ pub use buy::*;
 pub use delist::*;
 pub use withdraw_fee::*;
 pub use buy_with_token::*;
+pub use make_offer::*;
+pub use accept_offer::*;
+pub use cancel_offer::*;

@@ -1,6 +1,6 @@
 use anchor_lang::{prelude::*, system_program::{Transfer, transfer}};
 use anchor_spl::{associated_token::AssociatedToken, token::{MintTo, mint_to}, token_interface::{Mint, TokenAccount, TokenInterface}};
-use mpl_core::{ID as MPL_CORE_ID, collection, instructions::TransferV1CpiBuilder};
+use mpl_core::{ID as MPL_CORE_ID, instructions::TransferV1CpiBuilder};
 
 use crate::*;
 
@@ -31,7 +31,7 @@ pub struct Buy<'info> {
     #[account(
         mut,
         close = maker,
-        seeds = [b"listing", listing.asset.key().as_ref()],
+        seeds = [b"listing", asset.key().as_ref()],
         bump = listing.bump,
         has_one = maker,
         has_one = asset,
@@ -42,7 +42,7 @@ pub struct Buy<'info> {
     #[account(
         mut,
         seeds = [b"treasury", marketplace.key().as_ref()],
-        bump = marketplace.bump,
+        bump = marketplace.treasury_bump,
     )]
     pub treasury: SystemAccount<'info>,
 

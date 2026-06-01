@@ -41,4 +41,18 @@ pub mod nft_marketplace {
         ctx.accounts.receive_nft()?;
         ctx.accounts.receive_rewards()
     }
+
+    pub fn make_offer(ctx: Context<MakeOffer>, amount: u64) -> Result<()> {
+        ctx.accounts.create_offer(amount, &ctx.bumps)
+    }
+
+    pub fn accept_offer(ctx: Context<AcceptOffer>) -> Result<()> {
+        ctx.accounts.send_sol()?;
+        ctx.accounts.receive_nft()?;
+        ctx.accounts.receive_rewards()
+    }
+
+    pub fn cancel_offer(ctx: Context<CancelOffer>) -> Result<()> {
+        ctx.accounts.cancel_offer()
+    }
 }

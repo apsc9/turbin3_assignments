@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
-use mpl_core::{ID as MPL_CORE_ID, collection, instructions::TransferV1CpiBuilder};
+use mpl_core::{ID as MPL_CORE_ID, instructions::TransferV1CpiBuilder};
 
 use crate::*;
 
