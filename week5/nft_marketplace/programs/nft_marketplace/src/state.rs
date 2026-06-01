@@ -19,4 +19,5 @@ pub struct Listing {
     pub asset: Pubkey,
     pub price: u64,
     pub bump: u8,
+    pub payment_mint: Option<Pubkey>,
 }

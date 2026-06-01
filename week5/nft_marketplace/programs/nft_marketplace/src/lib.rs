@@ -35,4 +35,10 @@ pub mod nft_marketplace {
     pub fn withdraw(ctx: Context<WithdrawFee>, amount: u64) -> Result<()> {
         ctx.accounts.withdraw_fee(amount)
     }
+
+    pub fn buy_with_token(ctx: Context<BuyWithToken>) -> Result<()> {
+        ctx.accounts.send_token()?;
+        ctx.accounts.receive_nft()?;
+        ctx.accounts.receive_rewards()
+    }
 }

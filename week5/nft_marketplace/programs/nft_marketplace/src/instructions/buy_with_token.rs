@@ -1,12 +1,11 @@
-use anchor_lang::{prelude::*, system_program::{Transfer, transfer}};
-use anchor_spl::{associated_token::AssociatedToken, token::{MintTo, mint_to}, token_interface::{Mint, TokenAccount, TokenInterface}};
+use anchor_lang::prelude::*;
+use anchor_spl::{associated_token::AssociatedToken, token::{MintTo, mint_to}, token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked, transfer_checked}};
 use mpl_core::{ID as MPL_CORE_ID, collection, instructions::TransferV1CpiBuilder};
 
 use crate::*;
 
 #[derive(Accounts)]
-pub struct Buy<'info> {
-
+pub struct BuyWithToken<'info> {
     #[account(mut)]
     pub taker: Signer<'info>,
 
@@ -35,16 +34,40 @@ pub struct Buy<'info> {
         bump = listing.bump,
         has_one = maker,
         has_one = asset,
-        constraint = listing.payment_mint.is_none()
+        constraint = listing.payment_mint.is_some(),
     )]
     pub listing: Account<'info, Listing>,
 
     #[account(
-        mut,
-        seeds = [b"treasury", marketplace.key().as_ref()],
-        bump = marketplace.bump,
+        address = listing.payment_mint.unwrap(),
     )]
-    pub treasury: SystemAccount<'info>,
+    pub payment_mint: InterfaceAccount<'info, Mint>,
+
+    #[account(
+        mut,
+        associated_token::mint = payment_mint,
+        associated_token::authority = taker,
+        associated_token::token_program = token_program,
+    )]
+    pub taker_ata: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(
+        init_if_needed,
+        payer = taker,
+        associated_token::mint = payment_mint,
+        associated_token::authority = maker,
+        associated_token::token_program = token_program,
+    )]
+    pub maker_ata: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(
+        init_if_needed,
+        payer = taker,
+        associated_token::mint = payment_mint,
+        associated_token::authority = marketplace,
+        associated_token::token_program = token_program,
+    )]
+    pub treasury_ata: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -64,10 +87,10 @@ pub struct Buy<'info> {
     )]
     pub taker_rewards_ata: InterfaceAccount<'info, TokenAccount>,
 
-    /// CHECK: 
+    /// CHECK:
     #[account(address = MPL_CORE_ID)]
     pub mpl_core_program: UncheckedAccount<'info>,
-    
+
     pub associated_token_program: Program<'info, AssociatedToken>,
 
     pub system_program: Program<'info, System>,
@@ -75,9 +98,8 @@ pub struct Buy<'info> {
     pub token_program: Interface<'info, TokenInterface>
 }
 
-impl<'info> Buy<'info> {
-    pub fn send_sol(&mut self) -> Result<()> {
-
+impl<'info> BuyWithToken<'info> {
+    pub fn send_token(&mut self) -> Result<()> {
         let price = self.listing.price;
         let fee = (price as u128)
             .checked_mul(self.marketplace.fee as u128)
@@ -87,23 +109,34 @@ impl<'info> Buy<'info> {
 
         let maker_amount = price.checked_sub(fee).unwrap();
 
-        transfer(CpiContext::new(
-            self.system_program.to_account_info(), 
-            Transfer{
-                from: self.taker.to_account_info(),
-                to: self.maker.to_account_info(),
-            }), 
-            maker_amount
+        transfer_checked(
+            CpiContext::new(
+                self.token_program.to_account_info(), 
+                TransferChecked{
+                    from: self.taker_ata.to_account_info(),
+                    mint: self.payment_mint.to_account_info(),
+                    to: self.maker_ata.to_account_info(),
+                    authority: self.taker.to_account_info(),
+                }
+            ), 
+            maker_amount, 
+            self.payment_mint.decimals,
         )?;
 
-        transfer(CpiContext::new(
-            self.system_program.to_account_info(), 
-            Transfer{
-                from: self.taker.to_account_info().to_account_info(),
-                to: self.treasury.to_account_info(),
-            }), 
-            fee
+        transfer_checked(
+            CpiContext::new(
+                self.token_program.to_account_info(), 
+                TransferChecked{
+                    from: self.taker_ata.to_account_info(),
+                    mint: self.payment_mint.to_account_info(),
+                    to: self.treasury_ata.to_account_info(),
+                    authority: self.taker.to_account_info(),
+                }
+            ), 
+            fee, 
+            self.payment_mint.decimals,
         )?;
+
         Ok(())
     }
 

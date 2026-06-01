@@ -28,7 +28,7 @@ impl<'info> WithdrawFee<'info> {
 
         let rent = Rent::get()?;
         let min_balance = rent.minimum_balance(0); // 0 bytes data for SystemAccount
-        let available = self.treasury.lamports() - min_balance ;
+        let available = self.treasury.lamports().checked_sub(min_balance).unwrap();
 
         require!(amount <= available, MarketplaceError::InsufficientTreasuryBalance);
 

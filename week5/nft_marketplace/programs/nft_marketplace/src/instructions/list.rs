@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token_interface::Mint;
 use mpl_core::{ID as MPL_CORE_ID, collection, instructions::TransferV1CpiBuilder};
 
 use crate::*;
@@ -25,6 +26,8 @@ pub struct List<'info> {
     )]
     pub listing: Account<'info, Listing>,
 
+    pub payment_mint: Option<InterfaceAccount<'info, Mint>>,
+
     /// CHECK:
     #[account(address = MPL_CORE_ID)]
     pub mpl_core_program: UncheckedAccount<'info>,
@@ -39,6 +42,7 @@ impl<'info> List<'info> {
             asset: self.asset.key(), 
             price, 
             bump: bumps.listing, 
+            payment_mint: self.payment_mint.as_ref().map(|c| c.key()),
         });
 
         // change the ownership to listing
