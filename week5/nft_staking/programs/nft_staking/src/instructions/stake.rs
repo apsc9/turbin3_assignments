@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use mpl_core::{
     ID as MPL_CORE_ID,
     accounts::{BaseAssetV1, BaseCollectionV1},
-    instructions::{AddPluginV1CpiBuilder, UpdatePluginV1CpiBuilder},
+    instructions::{AddPluginV1CpiBuilder, UpdatePluginV1CpiBuilder, AddCollectionPluginV1CpiBuilder, UpdateCollectionPluginV1CpiBuilder},
     types::{UpdateAuthority, Attribute, Attributes, Plugin, PluginAuthority, PluginType, FreezeDelegate},
     fetch_plugin
 };
@@ -117,17 +117,34 @@ pub fn handler(ctx: Context<Stake>) -> Result<()> {
         .invoke_signed(&[signer_seeds])?;
     }
 
-    // Freeze the asset with the FreezeDelegate Plugin
-    // Note that the FreezeDelegate is a Owner-Managed Plugin, so it need to be signed by the owner
-    AddPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
-        .asset(&ctx.accounts.asset.to_account_info())
-        .collection(Some(&ctx.accounts.collection.to_account_info()))
-        .payer(&ctx.accounts.owner.to_account_info())
-        .authority(Some(&ctx.accounts.owner.to_account_info()))
-        .system_program(&ctx.accounts.system_program.to_account_info())
-        .plugin(Plugin::FreezeDelegate(FreezeDelegate { frozen: true }))
-        .init_authority(PluginAuthority::UpdateAuthority)
-        .invoke()?;
+    // Freeze the asset — FreezeDelegate is an Owner-Managed Plugin, signed by owner
+    // On re-stake the plugin already exists (unfrozen), so update instead of add
+    let freeze_exists = fetch_plugin::<BaseAssetV1, FreezeDelegate>(
+        &ctx.accounts.asset.to_account_info(),
+        PluginType::FreezeDelegate,
+    )
+    .is_ok();
+
+    if freeze_exists {
+        UpdatePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+            .asset(&ctx.accounts.asset.to_account_info())
+            .collection(Some(&ctx.accounts.collection.to_account_info()))
+            .payer(&ctx.accounts.owner.to_account_info())
+            .authority(Some(&ctx.accounts.update_authority.to_account_info()))
+            .system_program(&ctx.accounts.system_program.to_account_info())
+            .plugin(Plugin::FreezeDelegate(FreezeDelegate { frozen: true }))
+            .invoke_signed(&[signer_seeds])?;
+    } else {
+        AddPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+            .asset(&ctx.accounts.asset.to_account_info())
+            .collection(Some(&ctx.accounts.collection.to_account_info()))
+            .payer(&ctx.accounts.owner.to_account_info())
+            .authority(Some(&ctx.accounts.owner.to_account_info()))
+            .system_program(&ctx.accounts.system_program.to_account_info())
+            .plugin(Plugin::FreezeDelegate(FreezeDelegate { frozen: true }))
+            .init_authority(PluginAuthority::UpdateAuthority)
+            .invoke()?;
+    }
 
     // Update collection-level staked_count attribute
     // Fetch existing collection attributes to preserve any non-staking ones
@@ -159,10 +176,9 @@ pub fn handler(ctx: Context<Stake>) -> Result<()> {
         value: staked_count.to_string(),
     });
 
-    // Add or update the collection Attributes plugin (same add-or-update pattern as asset)
     if collection_attrs_fetched.is_none() {
-        AddPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
-            .asset(&ctx.accounts.collection.to_account_info())
+        AddCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+            .collection(&ctx.accounts.collection.to_account_info())
             .payer(&ctx.accounts.owner.to_account_info())
             .authority(Some(&ctx.accounts.update_authority.to_account_info()))
             .system_program(&ctx.accounts.system_program.to_account_info())
@@ -170,8 +186,8 @@ pub fn handler(ctx: Context<Stake>) -> Result<()> {
             .init_authority(PluginAuthority::UpdateAuthority)
             .invoke_signed(&[signer_seeds])?;
     } else {
-        UpdatePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
-            .asset(&ctx.accounts.collection.to_account_info())
+        UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+            .collection(&ctx.accounts.collection.to_account_info())
             .payer(&ctx.accounts.owner.to_account_info())
             .authority(Some(&ctx.accounts.update_authority.to_account_info()))
             .system_program(&ctx.accounts.system_program.to_account_info())

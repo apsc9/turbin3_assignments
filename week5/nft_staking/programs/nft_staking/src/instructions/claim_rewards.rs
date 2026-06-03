@@ -75,7 +75,7 @@ pub fn handler(ctx: Context<ClaimRewards>) -> Result<()> {
     let attributes = attributes_fetched.unwrap();
 
     let current_timestamp = Clock::get()?.unix_timestamp;
-    let mut reward_start: i64 = 0;
+    let mut reward_start: Option<i64> = None;
     let mut attributes_list = Vec::with_capacity(attributes.attribute_list.len());
 
     for attribute in &attributes.attribute_list {
@@ -83,20 +83,20 @@ pub fn handler(ctx: Context<ClaimRewards>) -> Result<()> {
             require!(attribute.value == "true", ErrorCode::AssetNotStaked);
             attributes_list.push(attribute.clone());
         } else if attribute.key == "staked_at" {
-            // Preserve staked_at — freeze period check in unstake depends on it
             attributes_list.push(attribute.clone());
         } else if attribute.key == "last_claimed" {
-            // Reward calculation starts from last_claimed
-            reward_start = attribute
-                .value
-                .parse::<i64>()
-                .map_err(|_| ErrorCode::InvalidTimestamp)?;
+            reward_start = Some(
+                attribute
+                    .value
+                    .parse::<i64>()
+                    .map_err(|_| ErrorCode::InvalidTimestamp)?,
+            );
         } else {
             attributes_list.push(attribute.clone());
         }
     }
 
-    require!(reward_start > 0, ErrorCode::AssetNotStaked);
+    let reward_start = reward_start.ok_or(ErrorCode::AssetNotStaked)?;
 
     // Calculate claimable time in days
     let claimable_time = current_timestamp

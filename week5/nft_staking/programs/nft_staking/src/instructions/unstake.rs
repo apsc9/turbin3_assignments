@@ -3,7 +3,7 @@ use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint, Toke
 use mpl_core::{
     ID as MPL_CORE_ID,
     accounts::{BaseAssetV1, BaseCollectionV1},
-    instructions::{UpdatePluginV1CpiBuilder},
+    instructions::{UpdatePluginV1CpiBuilder, UpdateCollectionPluginV1CpiBuilder},
     types::{UpdateAuthority, Attribute, Attributes, Plugin, PluginType, FreezeDelegate},
     fetch_plugin,
 };
@@ -171,8 +171,8 @@ pub fn handler(ctx: Context<Unstake>) -> Result<()> {
         value: staked_count.to_string(),
     });
 
-    UpdatePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
-        .asset(&ctx.accounts.collection.to_account_info())
+    UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+        .collection(&ctx.accounts.collection.to_account_info())
         .payer(&ctx.accounts.owner.to_account_info())
         .authority(Some(&ctx.accounts.update_authority.to_account_info()))
         .system_program(&ctx.accounts.system_program.to_account_info())

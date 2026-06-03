@@ -24,8 +24,12 @@ anchor-spl = "0.31.1"
 mpl-core = { version = "0.11.1", features = ["anchor"]}
 
 [dev-dependencies]
-litesvm = "0.6"
-solana-sdk = "2"
+litesvm = "0.12.0"
+solana-message = "3"
+solana-transaction = "3"
+solana-signer = "3"
+solana-keypair = "3"
+solana-clock = "3"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
